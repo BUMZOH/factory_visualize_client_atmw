@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本社工場見える化アプリ</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav class="page-tabs">
+        <button class="tab-button active" data-page="machine-detail-page">設備別詳細データ</button>
+        <button class="tab-button" data-page="all-machine-page">全設備稼働データ</button>
+        <button class="tab-button" data-page="machine-trend-page">設備別稼働データ推移</button>
+    </nav>
+
+    <main class="page-container">
+        <!-- ① 設備別詳細データ -->
+        <section id="machine-detail-page" class="page active">
+            <h2>設備別詳細データ</h1>
+            <p>設備1台に対して、1日の稼働状況を詳しく表示します。</p>
+
+            <div class="search-area">
+                <label>設備No.</label>
+                <input id="detail-machine-no" type="number">
+                <label>日付</label>
+                <input id="detail-date" type="date">
+                <button id="detail-search-button" class="primary-button">表示更新</button>
+            </div>
+
+            <div class="graph-area">
+                <div class="graph-card">
+                    <h3>稼働状態図</h3>
+                    <canvas id="state-diagram" width="1500" height="300"></canvas>
+                </div>
+
+                <div class="graph-card">
+                    <h3>状態別時間</h3>
+                    <canvas id="state-bar-chart" width="1200" height="420"></canvas>
+                </div>
+            </div>
+        </section>
+
+
+
+        <!-- ① 設備別詳細データ -->
+        <section id="all-machine-page" class="page">
+            <h2>全設備稼働データ</h1>
+            <p>全設備に対して、1日の稼働状況を一覧表示します。</p>
+            <!-- 以下作成中 -->
+        </section>
+
+
+        <!-- ③ 設備別稼働データ推移 -->
+        <section id="machine-trend-page" class="page">
+            <h2>設備別稼働データ推移</h1>
+            <p>設備1台に対して、指定期間の稼働状況を表示します。</p>
+            <!-- 以下作成中 -->
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

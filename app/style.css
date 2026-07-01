@@ -1,0 +1,96 @@
+* {
+  box-sizing: border-box;
+  /* border: 1px solid gray; */
+}
+
+body {
+    margin: 0;
+    background: #f3f5f7;
+    color: #222;
+}
+
+.page-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    background: #202936;
+}
+
+.tab-button{
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    background: #d8dde6;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.tab-button.active {
+    background: #ffffff;
+    font-weight: bold;
+}
+
+.page-container {
+    width: 1920px;
+    min-height: 1020px;
+    padding: 20px;
+}
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+.search-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    margin-bottom: 18px;
+    background: #ffffff;
+    border-radius: 8px;
+}
+
+.search-area input {
+    width: 180px;
+    padding: 8px;
+    font-size: 16px;
+}
+
+
+.primary-button {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    background: #1f6feb;
+    color: #ffffff;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.graph-area {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.graph-card {
+    width: 1540px;
+    padding: 16px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+.graph-card h3 {
+    margin: 0 0 12px;
+}
+
+canvas {
+    display: block;
+    border: 1px solid #cfd6df;
+    background: #ffffff;
+}
