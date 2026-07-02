@@ -5,6 +5,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+plt.rcParams["font.family"] = "Yu Gothic"   # 日本語対応
 import webview
 from PIL import Image, ImageDraw, ImageFont
 #独自モジュール
@@ -66,21 +67,49 @@ class AppAPI:
 
         return {
             "state_diagram": img64,
-            "state_bar_chart": self._create_state_bar_chart_base64(machine_no, production_date),
+            "state_bar_chart": self._create_state_bar_chart_base64(machine_no, production_date, ope_summary,),
         }
     
 
-    def _create_state_bar_chart_base64(self, machine_no: str, production_date: str) -> str:
-        """matplotlibで稼働状態別の棒グラフのダミー画像を作成する。"""
-        labels = ["Auto", "Stop", "Change", "Alarm"]
-        minutes = [920, 210, 180, 130]
+    def _create_state_bar_chart_base64(
+            self,
+            machine_no: str,
+            production_date: str,
+            ope_summary: list[list]
+    ) -> str:
+        """ope_summaryから稼働状態別の棒グラフ画像を作成し、Base64文字列で返す。"""
+
+        target_labels = [
+            "稼働時間[分]",
+            "単純停止[分]",
+            "故障ロス[分]",
+            "段取ロス[分]",
+            "刃具交換ロス[分]",
+            "アラーム発生[分]",
+            "材料切れ[分]",
+            "不明[分]",
+        ]
+
+        summary_dict = dict(ope_summary)
+
+        labels = target_labels
+        minutes = [
+            summary_dict.get(label, 0)
+            for label in target_labels
+        ]
 
         fig, ax = plt.subplots(figsize=(10, 3.5), dpi=120)
         ax.bar(labels, minutes)
-        ax.set_title(f"State summary / MC:{machine_no or '-'} / Date:{production_date or '-'}")
-        ax.set_ylabel("Minutes")
-        ax.set_ylim(0, 1000)
+
+        ax.set_title(f"状態別時間 / MC:{machine_no or '-'} / Date:{production_date or '-'}")
+        ax.set_ylabel("分")
         ax.grid(axis="y", alpha=0.3)
+
+        ax.tick_params(axis="x", labelrotation=30)
+
+        max_minutes = max(minutes) if minutes else 0
+        ax.set_ylim(0, max_minutes * 1.2 if max_minutes > 0 else 10)
+
         fig.tight_layout()
 
         buffer = BytesIO()
