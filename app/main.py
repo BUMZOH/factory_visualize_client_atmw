@@ -45,6 +45,50 @@ def data_convert_to_sine(data_1500:list[int]) -> list[int]:
 # ----- CLASS(API) --------------------------------------------------
 class AppAPI:
     
+    # 設備別状態時間グラフで使用
+    STATUS_ITEMS = [
+        {
+            "summary_label": "稼働時間[分]",
+            "display_label": "自動中",
+            "color": (50, 205, 50),
+        },
+        {
+            "summary_label": "単純停止[分]",
+            "display_label": "停止中",
+            "color": (128, 128, 128),
+        },
+        {
+            "summary_label": "故障ロス[分]",
+            "display_label": "故障中",
+            "color": (255, 0, 0),
+        },
+        {
+            "summary_label": "段取ロス[分]",
+            "display_label": "段替え",
+            "color": (0, 0, 255),
+        },
+        {
+            "summary_label": "刃具交換ロス[分]",
+            "display_label": "刃具交換",
+            "color": (135, 206, 235),
+        },
+        {
+            "summary_label": "アラーム発生[分]",
+            "display_label": "異常中",
+            "color": (255, 20, 147),
+        },
+        {
+            "summary_label": "材料切れ[分]",
+            "display_label": "材料切れ",
+            "color": (255, 255, 0),
+        },
+        {
+            "summary_label": "不明[分]",
+            "display_label": "不明",
+            "color": (0, 0, 0),
+        },
+    ]
+
     def get_detail_graph_images(self, machine_no: str="", production_date: str="") -> dict:
         """設備別詳細ページ用の画像をBase64文字列で返す。
         """
@@ -52,63 +96,78 @@ class AppAPI:
         ope_data_1500 = db.get_all_data(machine_no, production_date)    # 本社稼働データ(1500個)
         ope_data_3330 = data_convert_to_sine(ope_data_1500)             # 新江工場用へ変換(3330個)
 
-        # ステータス図(稼働状態図)取得
-        img = cog.get_ope_graph(ope_data_3330, title=f"MC{machine_no} / {production_date}")
-        img64 = self._image_to_base64(img)
+        # 状態タイムライン取得
+        img_timeline = cog.get_ope_graph(ope_data_3330, title=f"MC{machine_no} / {production_date}")
+        img64_timeline = self._image_to_base64(img_timeline)
 
 
         # 稼働データ サマリー取得
         ope_summary = opg.get_opdata_list(ope_data_3330)
-        for item in ope_summary:
-            print(item)
+        # for item in ope_summary:
+        #     print(item)
 
-        # 上のサマリーデータを使って棒グラフ描画＆Base64変換
-        # (作成予定)
+        # 状態時間グラフ作成
+        img64_barchart = self._create_state_bar_chart_base64(ope_summary,)
 
         return {
-            "state_diagram": img64,
-            "state_bar_chart": self._create_state_bar_chart_base64(machine_no, production_date, ope_summary,),
+            "state_timeline": img64_timeline,
+            "state_bar_chart": img64_barchart,
         }
     
 
     def _create_state_bar_chart_base64(
             self,
-            machine_no: str,
-            production_date: str,
             ope_summary: list[list]
     ) -> str:
         """ope_summaryから稼働状態別の棒グラフ画像を作成し、Base64文字列で返す。"""
 
-        target_labels = [
-            "稼働時間[分]",
-            "単純停止[分]",
-            "故障ロス[分]",
-            "段取ロス[分]",
-            "刃具交換ロス[分]",
-            "アラーム発生[分]",
-            "材料切れ[分]",
-            "不明[分]",
-        ]
-
         summary_dict = dict(ope_summary)
 
-        labels = target_labels
-        minutes = [
-            summary_dict.get(label, 0)
-            for label in target_labels
+        labels = [
+            item["display_label"]
+            for item in self.STATUS_ITEMS
         ]
 
-        fig, ax = plt.subplots(figsize=(10, 3.5), dpi=120)
-        ax.bar(labels, minutes)
+        minutes = [
+            summary_dict.get(item["summary_label"], 0)
+            for item in self.STATUS_ITEMS
+        ]
 
-        ax.set_title(f"状態別時間 / MC:{machine_no or '-'} / Date:{production_date or '-'}")
+        # 棒グラフの色（0～255 → 0.0～1.0へ変換）
+        colors = [
+            tuple(c / 255 for c in item["color"])
+            for item in self.STATUS_ITEMS
+        ]
+
+        fig, ax = plt.subplots(figsize=(16, 3), dpi=100)
+        # <グラフサイズ> 横: 16inch x 100dpi = 1600px / 縦: 3inch x 100dpi = 300px
+
+        bars = ax.bar(
+            labels,
+            minutes,
+            color=colors,
+            edgecolor="black",
+            linewidth=1
+        )
+
+        # 各要素の値表示
+        for bar, value in zip(bars, minutes):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,  # 棒の中央
+                value + 5,                          # 棒より少し上
+                f"{value}",                         # 表示する値
+                ha="center",
+                va="bottom",
+                fontsize=11,
+                fontweight="bold"
+            )
+
         ax.set_ylabel("分")
         ax.grid(axis="y", alpha=0.3)
 
-        ax.tick_params(axis="x", labelrotation=30)
+        ax.tick_params(axis="x", labelrotation=0)
 
-        max_minutes = max(minutes) if minutes else 0
-        ax.set_ylim(0, max_minutes * 1.2 if max_minutes > 0 else 10)
+        ax.set_ylim(0, 540)
 
         fig.tight_layout()
 
@@ -119,6 +178,8 @@ class AppAPI:
 
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
     
+
+
     def _image_to_base64(self, image: Image.Image) -> str:
         """Pillow画像をPNGのBase64文字列に変換する。"""
         buffer = BytesIO()
