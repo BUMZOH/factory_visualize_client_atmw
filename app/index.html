@@ -4,31 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>本社工場見える化アプリ</title>
+    <link rel="icon" href="data:,"> <!--エラー表示対策-->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="dashboard">
 
-    <nav class="page-tabs">
-        <button class="tab-button active" data-page="machine-detail-page">設備別詳細</button>
-        <button class="tab-button" data-page="all-machine-page">全設備1日</button>
-        <button class="tab-button" data-page="machine-trend-page">設備別推移</button>
-    </nav>
+    <aside class="sidebar">
+        <h1>MENU</h1>
 
-    <main class="page-container">
+        <nav class="nav">
+            <button class="tab-button active" data-page="machine-detail-page">設備別詳細</button>
+            <button class="tab-button" data-page="all-machine-page">全設備1日</button>
+            <button class="tab-button" data-page="machine-trend-page">設備別推移</button>
+        </nav>
+    </aside>
+
+
+    <main class="main">
+
         <!-- ① 設備別詳細データ -->
         <section id="machine-detail-page" class="page active">
-            <h2>設備別詳細データ</h1>
-            <p>設備1台に対して、1日の稼働状況を詳しく表示します。</p>
+            
+            <header class="page-title-area">
+                <h1>設備別詳細データ</h1>
 
-            <div class="search-area">
-                <label for="detail-machine-no">設備No.</label>
-                <!-- <input id="detail-machine-no" type="number"> -->
-                <select id="detail-machine-no"></select>
-                <label for="detail-date">日付</label>
-                <input id="detail-date" type="date">
-                <button id="detail-search-button" class="button primary-button">表示更新</button>
-                <button id="export-each-timeline-png-button" class="button success-button">画像出力</button>
-            </div>
+                <div class="search-area">
+                    <label for="detail-machine-no">設備No.</label>
+                    <select id="detail-machine-no"></select>
+
+                    <label for="detail-date">日付</label>
+                    <input id="detail-date" type="date">
+
+                    <button id="detail-search-button" class="button primary-button">表示更新</button>
+                    <button id="export-each-timeline-png-button" class="button success-button">画像出力</button>
+                </div>
+            </header>
 
             <div class="graph-area">
                 <div class="graph-card">
@@ -41,13 +52,14 @@
                     <canvas id="state-bar-chart" width="1600" height="300"></canvas>
                 </div>
             </div>
+
         </section>
 
 
 
         <!-- ① 設備別詳細データ -->
         <section id="all-machine-page" class="page">
-            <h2>全設備稼働データ</h1>
+            <h1>全設備稼働データ</h1>
             <p>全設備に対して、1日の稼働状況を一覧表示します。</p>
             <!-- 以下作成中 -->
         </section>
@@ -55,13 +67,41 @@
 
         <!-- ③ 設備別稼働データ推移 -->
         <section id="machine-trend-page" class="page">
-            <h2>設備別稼働データ推移</h1>
-            <p>設備1台に対して、指定期間の稼働状況を表示します。</p>
-            <!-- 以下作成中 -->
+
+            <header class="page-title-area">
+                <h1>設備別稼働データ推移</h1>
+
+                <div class="search-area">
+                    <label for="trend-machine-no">設備No.</label>
+                    <select name="" id="trend-machine-no"></select>
+
+                    <label for="trend-base-date">基準日</label>
+                    <input type="date" id="trend-base-date">
+
+                    <label for="trend-display-days">表示日数</label>
+                    <input type="number" id="trend-display-days" min="1" max="120">
+
+                    <button id="trend-search-button" class="button primary-button">表示更新</button>
+                </div>
+            </header>
+
+            <div class="graph-area">
+                <div class="graph-card">
+                    <h3>日別 生産数</h3>
+                    <canvas id="trend-actual-count-chart" width="1600" height="350"></canvas>
+                </div>
+
+                <div class="graph-card">
+                    <h3>日別 アラーム数</h3>
+                    <canvas id="trend-alarm-count-chart" width="1600" height="350"></canvas>
+                </div>
+            </div>
         </section>
 
     </main>
 
-    <script src="app.js"></script>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>

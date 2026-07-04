@@ -17,9 +17,11 @@ function setupTabButtons() {
 }
 
 function setupDetailSearchButton() {
-    const detailSearchButton = document.getElementById("detail-search-button");
+    const button = document.getElementById("detail-search-button");
 
-    detailSearchButton.addEventListener("click", updateDetailGraph);
+    button.addEventListener("click",  async () => {
+        await runButtonTask(button, updateDetailGraph);
+    });
 }
 
 async function updateDetailGraph() {
@@ -68,13 +70,15 @@ function setupDetailInputEnter() {
         "detail-date"
     ]
 
+    const button = document.getElementById("detail-search-button");
+
     inputIds.forEach(id => {
 
         document.getElementById(id).addEventListener("keydown", async (event) => {
 
             if (event.key === "Enter") {
                 event.preventDefault();
-                await updateDetailGraph();
+                await runButtonTask(button, updateDetailGraph);
             }
         });
     });
@@ -101,39 +105,149 @@ function setupExportEachTimelinePngButton() {
     const button = document.getElementById("export-each-timeline-png-button");
 
     button.addEventListener("click", async () => {
-        const productionDate = document.getElementById("detail-date").value;
+        await runButtonTask(button, exportEachTimelinePng);
+    });
 
-        if (!productionDate) {
-            alert("日付を選択してください。");
-            return;
-        }
+}
 
-        try {
-            const result = await window.pywebview.api.export_each_machine_timeline_png_to_desktop(
-                productionDate
-            );
+async function exportEachTimelinePng() {
 
-            alert(
-                `画像出力が完了しました。\n\n` +
-                `保存先:\n${result.output_dir}\n\n` +
-                `出力枚数: ${result.file_count}枚`
-            );
+    if (!confirm(
+        "設備タイムライン画像をデスクトップへ出力します。\n\n続行しますか？"
+    )) {
+        return;
+    }
 
-        } catch (error) {
-            alert(`画像出力に失敗しました。\n${error}`);
-        }
+    const productionDate = document.getElementById("detail-date").value;
+
+    if (!productionDate) {
+        alert("日付を選択してください。");
+        return;
+    }
+
+    try {
+        const result = await window.pywebview.api.export_each_machine_timeline_png_to_desktop(
+            productionDate
+        );
+
+        alert(
+            `画像出力が完了しました。\n\n` +
+            `保存先:\n${result.output_dir}\n\n` +
+            `出力枚数: ${result.file_count}枚`
+        );
+
+    } catch (error) {
+        alert(`画像出力に失敗しました。\n${error}`);
+    }
+}
+
+function setupTrendDefaultInputs() {
+    const dateInput = document.getElementById("trend-base-date");
+    const daysInput = document.getElementById("trend-display-days");
+
+    const today = new Date();
+
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    dateInput.value = `${yyyy}-${mm}-${dd}`;
+    daysInput.value = 30;
+}
+
+async function setupTrendMachineNoList() {
+    const select = document.getElementById("trend-machine-no");
+
+    const machineList = await window.pywebview.api.get_machine_no_list();
+    
+    select.innerHTML = "";
+
+    machineList.forEach(machineNo => {
+        const option = document.createElement("option");
+
+        option.value = machineNo;
+        option.textContent = machineNo;
+
+        select.appendChild(option);
     });
 }
 
+function setupTrendSearchButton() {
+    const button = document.getElementById("trend-search-button");
+
+    button.addEventListener("click", async () => {
+        await runButtonTask(button, updateTrendGraph);
+    });
+}
+
+async function updateTrendGraph() {
+    const machineNo = document.getElementById("trend-machine-no").value;
+    const baseDate = document.getElementById("trend-base-date").value;
+    const displayDays = document.getElementById("trend-display-days").value;
+
+    const imageData = await window.pywebview.api.get_machine_trend_graph_images(
+      machineNo,
+      baseDate,
+      displayDays  
+    );
+
+    drawBase64ImageToCanvas(
+        "trend-actual-count-chart",
+        imageData.actual_count
+    );
+
+    drawBase64ImageToCanvas(
+        "trend-alarm-count-chart",
+        imageData.alarm_count
+    );
+}
+
+function setupTrendInputEnter() {
+    const inputIds = [
+        "trend-machine-no",
+        "trend-base-date",
+        "trend-display-days"
+    ];
+
+    const button = document.getElementById("trend-search-button");
+
+    inputIds.forEach(id => {
+        document.getElementById(id).addEventListener("keydown", async (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                await runButtonTask(button, updateTrendGraph);
+            }
+        });
+    });
+}
+
+async function runButtonTask(button, task) {
+    const originalText = button.textContent;
+
+    button.disabled = true;
+    button.textContent = "処理中...";
+
+    try {
+        await task();
+    } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+    }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     setupTabButtons();
     setupDefaultDate();
+    setupTrendDefaultInputs();
 });
 
 window.addEventListener("pywebviewready", async () => {
     await setupMachineNoList();
+    await setupTrendMachineNoList();
+
     setupDetailSearchButton();
     setupDetailInputEnter();
     setupExportEachTimelinePngButton();
+
+    setupTrendSearchButton();
+    setupTrendInputEnter();
 });

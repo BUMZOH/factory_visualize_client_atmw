@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>個人別スコアランキング</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {box-sizing: border-box;}
+
+    html,body {height: 100%;}
+
+    body {
+        margin: 0;
+        /* overflow: hidden; */
+    }
+
+    /* ----- 全体構造 ----- */
+    .dashboard {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        height: 100vh;
+        /* overflow: hidden; */
+    }
+
+    /* ----- ナビゲーションバー ----- */
+    .sidebar {
+        background: #1f2a37;
+        color: #fff; 
+        padding: 20px 16px;
+    }
+
+    .sidebar h1 {
+        margin: 0 0 24px;
+        font-size: 20px;
+        text-align: center;
+    }
+
+    .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+
+    nav a.button-link {
+        padding: 10px 16px;
+        background: #334155;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 6px;
+    }
+    nav a.button-link:hover {
+        background-color: #475569;
+    }
+
+    /* ----- メイン画面 ----- */
+    .main {
+        display: grid;
+        grid-template-columns: 450px 1fr;
+        grid-template-rows: 450px 1fr;
+        gap: 20px;
+        padding: 20px;
+        overflow-y: auto;
+    }
+    .graph-area {
+        grid-column: 1/3;
+        grid-row: 1/2;
+    }
+    .form-area {
+        grid-column: 1/2;
+        grid-row: 2/3;
+    }
+
+    .table-area {
+        grid-column: 2/3;
+        grid-row: 2/3;
+        overflow-y: auto;
+    }
+
+    .graph-area canvas, .form-area, .table-area {
+        border: 1px solid lightgray;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 5px 5px 10px gray;
+    }
+
+
+    .main h1{
+        margin: 0;
+        padding-left: 10px;
+        font-size: 32px;
+        border-bottom: 3px solid #1f2a37 ;
+        border-left: 15px solid #1f2a37 ;
+    }
+
+    form { display: flex;flex-direction: column  ; gap: 12px; align-items:flex-start; margin-bottom: 20px; }
+    input, select { padding: 8px; min-width: 260px; }
+    button { padding: 8px 14px; text-decoration: none; border: 1px solid #888; background: #f5f5f5; color: #222; border-radius: 6px; }
+    .chart-box { width: 100%; max-width: 100%; height: 380px; margin: 18px 0 24px; }
+    table  {max-width: 100%; border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #bbb; padding: 8px; text-align: left; }
+    th { background: #f0f0f0; position: sticky; top: 0px;}
+    .summary { margin: 10px 0; }
+  </style>
+</head>
+<body>
+<div class="dashboard">
+    <!-- 左側ナビゲーションバー -->
+    <aside class="sidebar">
+        <h1>MENU</h1>
+        <nav class="nav">
+            <a class="button-link" href="/view">ランキング</a>
+            <a class="button-link" href="/daily_view">日別集計</a>
+            <a class="button-link" href="/practice_count">練習回数</a>
+        </nav>
+    </aside>
+
+    <!-- メインエリア -->
+    <main class="main">
+
+        <!-- 上段：グラフエリア -->
+        <div class="graph-area">
+          <h1>個人別スコアランキング</h1>
+          <div class="chart-box">
+              <canvas id="scoreRankingChart"></canvas>
+          </div>
+        </div>
+
+
+        <!-- 下段左：フォームエリア -->
+        <div class="form-area">
+          <form method="get" action="/view">
+              <label>開始日</label>
+              <input type="date" name="start_date" value="{{ start_date }}">
+
+              <label>終了日</label>
+              <input type="date" name="end_date" value="{{ end_date }}">
+
+              <label>LessonName</label>
+              <select name="lesson_name">
+                  {% for lesson in lesson_options %}
+                  <option value="{{ lesson }}" {% if lesson == selected_lesson_name %}selected{% endif %}>{{ lesson }}</option>
+                  {% endfor %}
+              </select>
+
+              <button type="submit">表示</button>
+          </form>
+
+          <div class="summary">
+              集計期間: {{ range_start }} ～ {{ range_end }}<br>
+              表示対象(LessonName): {{ selected_lesson_name }}<br>
+              対象人数: {{ total_rows }} 名<br>
+              グラフ内容: Nameごとの最高Score
+          </div>
+        </div>
+
+        <!-- 下段右：テーブルエリア -->
+        <div class="table-area">
+          <h2>Nameごとのスコアランキング</h2>
+          <table>
+              <thead>
+              <tr>
+                  <th>順位</th>
+                  <th>Name</th>
+                  <th>Score</th>
+              </tr>
+              </thead>
+              <tbody>
+              {% for row in ranking_records %}
+              <tr>
+                  <td>{{ row.Rank }}</td>
+                  <td>{{ row.Name }}</td>
+                  <td>{{ row.Score }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="3">データがありません</td></tr>
+              {% endfor %}
+              </tbody>
+          </table>
+        </div>
+
+      </main>
+
+</div>
+
+<!------- 以下JavaScript ------->
+<script>
+  const labels = {{ chart_labels | tojson }};
+  const values = {{ chart_values | tojson }};
+
+  const ctx = document.getElementById('scoreRankingChart');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Score',
+        data: values
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          ticks: {
+            autoSkip: false,
+            maxRotation: 45,
+            minRotation: 0
+          }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: true
+        }
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
