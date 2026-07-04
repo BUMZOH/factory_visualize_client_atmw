@@ -71,8 +71,32 @@ def get_1day_status_data(
     return values[10:1450]
 
 
+def get_machine_no_list() -> list[int]:
+    """
+    operation_dataテーブルに存在する設備番号一覧を取得する
+
+    Returns:
+        list[int]
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT DISTINCT machine_no
+            FROM operation_data
+            ORDER BY machine_no
+        """)
+
+        rows = cur.fetchall()
+
+    return [row[0] for row in rows]
+
+
 
 if __name__ == '__main__':
+
+    print(get_machine_no_list())
+    exit()
 
     values = get_1day_status_data(
         machine_no=1,

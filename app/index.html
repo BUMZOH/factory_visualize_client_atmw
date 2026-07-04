@@ -9,9 +9,9 @@
 <body>
 
     <nav class="page-tabs">
-        <button class="tab-button active" data-page="machine-detail-page">設備別詳細データ</button>
-        <button class="tab-button" data-page="all-machine-page">全設備稼働データ</button>
-        <button class="tab-button" data-page="machine-trend-page">設備別稼働データ推移</button>
+        <button class="tab-button active" data-page="machine-detail-page">設備別詳細</button>
+        <button class="tab-button" data-page="all-machine-page">全設備1日</button>
+        <button class="tab-button" data-page="machine-trend-page">設備別推移</button>
     </nav>
 
     <main class="page-container">
@@ -21,11 +21,13 @@
             <p>設備1台に対して、1日の稼働状況を詳しく表示します。</p>
 
             <div class="search-area">
-                <label>設備No.</label>
-                <input id="detail-machine-no" type="number">
-                <label>日付</label>
+                <label for="detail-machine-no">設備No.</label>
+                <!-- <input id="detail-machine-no" type="number"> -->
+                <select id="detail-machine-no"></select>
+                <label for="detail-date">日付</label>
                 <input id="detail-date" type="date">
-                <button id="detail-search-button" class="primary-button">表示更新</button>
+                <button id="detail-search-button" class="button primary-button">表示更新</button>
+                <button id="export-each-timeline-png-button" class="button success-button">画像出力</button>
             </div>
 
             <div class="graph-area">

@@ -1,5 +1,4 @@
 function switchPage(pageId) {
-    console.log("HELLO")
     document.querySelectorAll(".page").forEach(page => {
         page.classList.toggle("active", page.id === pageId);
     });
@@ -32,7 +31,6 @@ async function updateDetailGraph() {
         productionDate
     );
 
-    console.log(imageData);
     drawBase64ImageToCanvas("state-timeline", imageData.state_timeline);
     drawBase64ImageToCanvas("state-bar-chart", imageData.state_bar_chart);
 }
@@ -82,6 +80,50 @@ function setupDetailInputEnter() {
     });
 }
 
+async function setupMachineNoList() {
+    const select = document.getElementById("detail-machine-no");
+
+    const machineList = await window.pywebview.api.get_machine_no_list();
+
+    select.innerHTML = "";
+
+    machineList.forEach(machineNo => {
+        const option = document.createElement("option");
+
+        option.value = machineNo;
+        option.textContent = machineNo;
+
+        select.appendChild(option);
+    });
+}
+
+function setupExportEachTimelinePngButton() {
+    const button = document.getElementById("export-each-timeline-png-button");
+
+    button.addEventListener("click", async () => {
+        const productionDate = document.getElementById("detail-date").value;
+
+        if (!productionDate) {
+            alert("日付を選択してください。");
+            return;
+        }
+
+        try {
+            const result = await window.pywebview.api.export_each_machine_timeline_png_to_desktop(
+                productionDate
+            );
+
+            alert(
+                `画像出力が完了しました。\n\n` +
+                `保存先:\n${result.output_dir}\n\n` +
+                `出力枚数: ${result.file_count}枚`
+            );
+
+        } catch (error) {
+            alert(`画像出力に失敗しました。\n${error}`);
+        }
+    });
+}
 
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -89,7 +131,9 @@ document.addEventListener("DOMContentLoaded", () => {
     setupDefaultDate();
 });
 
-window.addEventListener("pywebviewready", () => {
+window.addEventListener("pywebviewready", async () => {
+    await setupMachineNoList();
     setupDetailSearchButton();
     setupDetailInputEnter();
+    setupExportEachTimelinePngButton();
 });

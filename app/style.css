@@ -54,21 +54,29 @@ body {
     border-radius: 8px;
 }
 
-.search-area input {
+.search-area input,
+.search-area select {
     width: 180px;
     padding: 8px;
     font-size: 16px;
 }
 
 
-.primary-button {
+.button {
     padding: 10px 24px;
     border: none;
     border-radius: 6px;
-    background: #1f6feb;
-    color: #ffffff;
+    color: white;
     font-size: 16px;
     cursor: pointer;
+}
+
+.button-primary {
+    background: #1f6feb;
+}
+
+.button-success {
+    background: #28a745;
 }
 
 .graph-area {

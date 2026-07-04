@@ -178,14 +178,59 @@ class AppAPI:
 
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
     
-
-
     def _image_to_base64(self, image: Image.Image) -> str:
         """Pillow画像をPNGのBase64文字列に変換する。"""
         buffer = BytesIO()
         image.save(buffer, format="PNG")
         buffer.seek(0)
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
+    
+    def get_machine_no_list(self) -> list[int]:
+        """設備番号一覧を返す"""
+        return db.get_machine_no_list()
+
+    def export_each_machine_timeline_png_to_desktop(self, production_date: str) -> dict:
+        """
+        指定日の設備別タイムライン画像を、デスクトップ上のフォルダに保存する
+        """
+        desktop_dir = Path.home() / "Desktop"
+        output_dir = desktop_dir / f"設備タイムライン_{production_date}"
+
+        output_dir.mkdir(exist_ok=True)
+
+        machine_no_list = db.get_machine_no_list()
+
+        saved_files = []
+
+        for machine_no in machine_no_list:
+            try:
+                ope_data_1500 = db.get_all_data(machine_no, production_date)
+                ope_data_3330 = data_convert_to_sine(ope_data_1500)
+                
+                img_timeline = cog.get_ope_graph(
+                    ope_data_3330,
+                    title=f"MC{machine_no} / {production_date}"
+                )
+
+                file_path = output_dir / f"MC{machine_no}_timeline_{production_date}.png"
+
+                img_timeline.save(file_path)
+
+                saved_files.append(str(file_path))
+
+            except ValueError:
+                # 指定日にデータがない場合はスキップ
+                continue
+
+        if not saved_files:
+            raise ValueError(
+                f"出力できるデータがありません。production_date={production_date}"
+            )
+
+        return {
+            "output_dir": str(output_dir),
+            "file_count": len(saved_files),
+        }
 
 
 if __name__ == "__main__":
