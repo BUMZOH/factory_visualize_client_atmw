@@ -1,0 +1,8 @@
+# グラフ
+matplotlib
+
+# GUI
+pywebview
+
+# ネットワーク(Ping)
+ping3
