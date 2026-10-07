@@ -1,0 +1,18 @@
+{
+    "factory1":{
+        "machine_numbers": [1, 3, 4, 6, 7, 10, 12, 13, 14, 17, 30, 32, 40],
+        "machine_types": ["KDP", "KDP", "KDP", "KDP", "KDP", "KDP", "KDP", "KDP", "KDP", "KDP", "KDP", "KDP", "KDPN"]
+    },
+    "factory3":{
+        "machine_numbers": [18, 36, 46, 47, 48, 49, 50],
+        "machine_types": ["RS", "RD", "TOWA", "TOWA", "TOWA", "TOWA", "TOWA"]
+    },
+    "factory4_floor1":{
+        "machine_numbers": [34, 35, 43, 63, 41, 44, 45, 57],
+        "machine_types": ["KDP", "KDP", "KDPF", "KDPF", "NC", "NC", "NC", "NC"]
+    },
+    "factory4_floor2":{
+        "machine_numbers": [39, 42, 52, 53, 54, 64],
+        "machine_types": ["PU1", "PU2", "HBD", "RG1", "RG2", "RGIM"]
+    }
+}
