@@ -1,9 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
 
+from style import apply_style
 from tab_daily import DailyTab
 from tab_detail import DetailTab
-from style import apply_style
+from tab_period import PeriodTab
 
 
 # ================================================
@@ -17,6 +18,7 @@ APP_VERSION = "Ver.20261010-1"
 
 NAV_BUTTONS = [
     ("日別", DailyTab),
+    ("期間", PeriodTab),
     ("詳細", DetailTab),
 ]
 
@@ -147,6 +149,7 @@ def on_close() -> None:
         page.close_charts()
 
     root.destroy()
+
 
 root.protocol("WM_DELETE_WINDOW", on_close)
 
