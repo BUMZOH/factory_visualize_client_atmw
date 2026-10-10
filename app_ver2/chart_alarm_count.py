@@ -22,6 +22,14 @@ CHART_COLOR = "tab:pink"
 REFERENCE_COUNT = 20
 
 
+def add_weekday(date_text: str) -> str:
+    weekdays = ["月", "火", "水", "木", "金", "土", "日"]
+    date = datetime.strptime(date_text, "%Y-%m-%d")
+    weekday = weekdays[date.weekday()]
+
+    return f"{date_text}({weekday})"
+
+
 # ================================================
 #   Chart
 # ================================================
@@ -178,7 +186,8 @@ class MachineAlarmCountChart(Figure):
                 )
             ],
         )
-        ax.set_title(f"{CHART_TITLE}({production_date})", loc="left", pad=24)
+        display_date = add_weekday(production_date)
+        ax.set_title(f"{CHART_TITLE} {display_date}", loc="left", pad=24)
         ax.set_xlabel(CHART_X_LABEL)
         ax.set_ylabel(CHART_Y_LABEL)
 
