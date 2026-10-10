@@ -246,6 +246,17 @@ class PeriodTab(ttk.Frame):
             padx=(60, 5),
         )
 
+        self.auto_capture_button = ttk.Button(
+            search_frame,
+            text="自動キャプチャ",
+            command=self.auto_capture,
+        )
+        self.auto_capture_button.grid(
+            row=0,
+            column=8,
+            padx=5,
+        )
+
         # Four charts in a 2 x 2 grid
         self.chart_frame = ttk.Frame(self)
         self.chart_frame.pack(fill=tk.BOTH, expand=True)
@@ -358,17 +369,12 @@ class PeriodTab(ttk.Frame):
         self.update_idletasks()
 
         try:
-            for figure, canvas in zip(
-                self.figures,
-                self.canvases,
-            ):
-                figure.update(
-                    machine_no,
-                    start_date_text,
-                    end_date_text,
-                    db_file,
-                )
-                canvas.draw()
+            self.update_charts(
+                machine_no,
+                start_date_text,
+                end_date_text,
+                db_file,
+            )
 
         except (
             sqlite3.Error,
@@ -387,6 +393,26 @@ class PeriodTab(ttk.Frame):
                 text="検索",
                 state=tk.NORMAL,
             )
+
+    def update_charts(
+        self,
+        machine_no: int,
+        start_date: str,
+        end_date: str,
+        db_file: str,
+    ) -> None:
+        """指定した条件で4つのグラフを更新する。"""
+        for figure, canvas in zip(
+            self.figures,
+            self.canvases,
+        ):
+            figure.update(
+                machine_no,
+                start_date,
+                end_date,
+                db_file,
+            )
+            canvas.draw()
 
     def get_db_file(self, machine_no: int) -> str:
         """機械番号から使用するDBファイルを取得する。"""
@@ -482,8 +508,8 @@ class PeriodTab(ttk.Frame):
         for figure in self.figures:
             plt.close(figure)
 
-    def capture_window(self) -> None:
-        """アプリウィンドウをキャプチャしてPicturesフォルダへ保存する。"""
+    def save_window_capture(self, file_path: Path) -> None:
+        """現在のアプリウィンドウを指定したファイルへ保存する。"""
         window = self.winfo_toplevel()
 
         x = window.winfo_rootx()
@@ -498,17 +524,155 @@ class PeriodTab(ttk.Frame):
             y + height,
         )
 
+        image = ImageGrab.grab(bbox=bbox)
+        image.save(file_path)
+
+    def capture_window(self) -> None:
+        """アプリウィンドウをPicturesフォルダへ保存する。"""
         pictures_dir = Path.home() / "Pictures"
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         file_path = pictures_dir / f"capture_{timestamp}.png"
 
-        image = ImageGrab.grab(bbox=bbox)
-        image.save(file_path)
+        self.save_window_capture(file_path)
 
         messagebox.showinfo(
             "キャプチャ",
             f"保存しました。\n\n{file_path}",
+            parent=self,
+        )
+
+    def auto_capture(self) -> None:
+        """JSONに登録された全設備を順番に表示してキャプチャする。"""
+        start_date_text = self.start_date_entry.get().strip()
+        end_date_text = self.end_date_entry.get().strip()
+
+        try:
+            start_date = datetime.strptime(
+                start_date_text,
+                "%Y-%m-%d",
+            )
+            end_date = datetime.strptime(
+                end_date_text,
+                "%Y-%m-%d",
+            )
+
+            if start_date.strftime("%Y-%m-%d") != start_date_text:
+                raise ValueError(
+                    "開始期間はYYYY-MM-DD形式で入力してください。"
+                )
+
+            if end_date.strftime("%Y-%m-%d") != end_date_text:
+                raise ValueError(
+                    "終了期間はYYYY-MM-DD形式で入力してください。"
+                )
+
+            if start_date > end_date:
+                raise ValueError(
+                    "開始期間は終了期間以前にしてください。"
+                )
+
+        except ValueError as error:
+            messagebox.showwarning(
+                "入力エラー",
+                str(error),
+                parent=self,
+            )
+            return
+
+        answer = messagebox.askyesno(
+            "自動キャプチャ",
+            "自動キャプチャを開始しますか？\n\n"
+            "数分程度時間がかかります。",
+            parent=self,
+        )
+
+        if not answer:
+            return
+
+        start_file_date = start_date.strftime("%Y%m%d")
+        end_file_date = end_date.strftime("%Y%m%d")
+
+        pictures_dir = (
+            Path.home()
+            / "Pictures"
+            / "FactoryProductionDashboard"
+        )
+        pictures_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        self.search_button.config(state=tk.DISABLED)
+        self.capture_button.config(state=tk.DISABLED)
+        self.auto_capture_button.config(
+            text="処理中...",
+            state=tk.DISABLED,
+        )
+        self.update_idletasks()
+
+        capture_count = 0
+
+        try:
+            for area, area_data in self.factory_machine_layout.items():
+                area_dir = pictures_dir / area
+                area_dir.mkdir(
+                    parents=True,
+                    exist_ok=True,
+                )
+
+                db_file = area_data["db_file"]
+
+                for machine_no in area_data["machine_numbers"]:
+                    self.machine_entry.delete(0, tk.END)
+                    self.machine_entry.insert(0, str(machine_no))
+
+                    self.update_charts(
+                        machine_no,
+                        start_date_text,
+                        end_date_text,
+                        db_file,
+                    )
+
+                    # TkinterとMatplotlibの描画を完了させてから保存する。
+                    self.update()
+
+                    file_name = (
+                        f"MC{machine_no:03d}_"
+                        f"{start_file_date}_{end_file_date}.png"
+                    )
+                    file_path = area_dir / file_name
+
+                    self.save_window_capture(file_path)
+                    capture_count += 1
+
+        except (
+            sqlite3.Error,
+            FileNotFoundError,
+            ValueError,
+            struct.error,
+            OSError,
+        ) as error:
+            messagebox.showerror(
+                "自動キャプチャエラー",
+                str(error),
+                parent=self,
+            )
+            return
+
+        finally:
+            self.search_button.config(state=tk.NORMAL)
+            self.capture_button.config(state=tk.NORMAL)
+            self.auto_capture_button.config(
+                text="自動キャプチャ",
+                state=tk.NORMAL,
+            )
+
+        messagebox.showinfo(
+            "自動キャプチャ",
+            f"自動キャプチャが完了しました。\n\n"
+            f"保存枚数: {capture_count}枚\n"
+            f"保存先:\n{pictures_dir}",
             parent=self,
         )
 
@@ -536,4 +700,5 @@ if __name__ == "__main__":
         "WM_DELETE_WINDOW",
         on_close,
     )
+
     root.mainloop()

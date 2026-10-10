@@ -327,7 +327,26 @@ class MachineOperatingTimePeriodChart(Figure):
                     rotation=90,
                 )
 
-        self.tight_layout()
+        # 対象期間の定時内・定時外・総合計をグラフ左下に表示する。
+        total_regular_time = sum(regular_times)
+        total_outside_regular_time = sum(outside_regular_times)
+        total_time = total_regular_time + total_outside_regular_time
+
+        self.tight_layout(rect=(0, 0.10, 1, 1))
+
+        self.text(
+            0.08,
+            0.08,
+            f"定時内合計 = {total_regular_time:,.0f}分 "
+            f"({total_regular_time / 60:.1f}h)    "
+            f"定時外合計 = {total_outside_regular_time:,.0f}分 "
+            f"({total_outside_regular_time / 60:.1f}h)    "
+            f"総合計 = {total_time:,.0f}分 ({total_time / 60:.1f}h)",
+            ha="left",
+            va="bottom",
+            fontsize=10,
+            fontweight="bold",
+        )
 
 
 if __name__ == "__main__":

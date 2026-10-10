@@ -277,7 +277,23 @@ class MachineProductionPeriodChart(Figure):
                     rotation=90,
                 )
 
-        self.tight_layout()
+        # 対象期間の生産数合計を左下に表示する。
+        total_production = sum(actual_values)
+
+        # 対象期間の生産数合計をグラフ左下に表示する。
+        total_production = sum(actual_values)
+
+        self.tight_layout(rect=(0, 0.10, 1, 1))
+
+        self.text(
+            0.08,
+            0.08,
+            f"生産数合計 = {total_production:,.0f}",
+            ha="left",
+            va="bottom",
+            fontsize=10,
+            fontweight="bold",
+        )
 
 
 if __name__ == "__main__":

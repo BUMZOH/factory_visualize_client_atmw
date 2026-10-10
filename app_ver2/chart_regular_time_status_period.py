@@ -412,7 +412,52 @@ class RegularTimeMachineStatusPeriodChart(Figure):
                     rotation=90,
                 )
 
-        self.tight_layout()
+        # DBデータが存在する平日だけを平均対象にする。
+        weekday_indexes = [
+            i
+            for i, date in enumerate(dates)
+            if datetime.strptime(date, "%Y-%m-%d").weekday() < 5
+            and date in time_by_date
+        ]
+
+        if weekday_indexes:
+            count = len(weekday_indexes)
+
+            avg_auto = sum(auto_times[i] for i in weekday_indexes) / count
+            avg_material = sum(material_times[i] for i in weekday_indexes) / count
+            avg_changeover = (
+                sum(changeover_times[i] for i in weekday_indexes) / count
+            )
+            avg_tool_change = (
+                sum(tool_change_times[i] for i in weekday_indexes) / count
+            )
+            avg_alarm = sum(alarm_times[i] for i in weekday_indexes) / count
+            avg_breakdown = (
+                sum(breakdown_times[i] for i in weekday_indexes) / count
+            )
+
+            average_text = (
+                f"平日平均：自動運転={avg_auto:.0f}%    "
+                f"材料切れ={avg_material:.0f}%    "
+                f"段替え={avg_changeover:.0f}%    "
+                f"刃具交換={avg_tool_change:.0f}%    "
+                f"アラーム={avg_alarm:.0f}%    "
+                f"故障={avg_breakdown:.0f}%"
+            )
+        else:
+            average_text = "平日平均：データなし"
+
+        self.tight_layout(rect=(0, 0.10, 1, 1))
+
+        self.text(
+            0.08,
+            0.08,
+            average_text,
+            ha="left",
+            va="bottom",
+            fontsize=10,
+            fontweight="bold",
+        )
 
 
 if __name__ == "__main__":

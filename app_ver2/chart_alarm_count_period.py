@@ -249,7 +249,20 @@ class MachineAlarmCountPeriodChart(Figure):
                     rotation=90,
                 )
 
-        self.tight_layout()
+        # 対象期間のアラーム合計をグラフ左下に表示する。
+        total_alarm_count = sum(alarm_counts)
+
+        self.tight_layout(rect=(0, 0.10, 1, 1))
+
+        self.text(
+            0.08,
+            0.08,
+            f"アラーム合計 = {total_alarm_count:,.0f}",
+            ha="left",
+            va="bottom",
+            fontsize=10,
+            fontweight="bold",
+        )
 
 
 if __name__ == "__main__":
