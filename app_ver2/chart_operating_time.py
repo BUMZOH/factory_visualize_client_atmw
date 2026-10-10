@@ -1,24 +1,27 @@
 """指定した1生産日の設備別自動運転時間を定時内・定時外に分けて表示する。"""
+
 import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from common_lib_mw import opdata_generator
 from matplotlib.figure import Figure
 
 
 # ================================================
 #   Settings
 # ================================================
-BASE_DIR = Path(__file__).resolve().parent
-# DB_PATH = BASE_DIR / "main_factory_production_data.db"
-DB_PATH = Path(r"\\192.168.2.1\共有ファイル\M-光和共有ファイル\P_ProductControl\operation_data\main_factory_production_data.db")
+DB_DIR = Path(
+    r"\\192.168.2.1\共有ファイル\M-光和共有ファイル\P_ProductControl"
+    r"\operation_data"
+)
 
 CHART_TITLE = "定時内・定時外の機械稼働時間"
 CHART_X_LABEL = "設備番号"
 CHART_Y_LABEL = "稼働時間（分）"
 REGULAR_COLOR = "yellowgreen"
 OUTSIDE_REGULAR_COLOR = "darkorange"
-REGULAR_TIME = 432   # 定時8:00～17:00の基準時間の80%
+REGULAR_TIME = 432  # 定時8:00～17:00の基準時間の80%
 
 
 # ================================================
@@ -30,10 +33,11 @@ class MachineOperatingTimeChart(Figure):
         machine_numbers: list[int],
         machine_types: list[str],
         production_date: str,
+        db_file: str,
     ) -> None:
         """指定した1生産日の自動運転時間を設備別に表示する。
 
-        定時外稼働時間 = all_auto_time - regular_auto_time。
+        定時外稼働時間 = 全自動運転時間 - 定時内自動運転時間。
 
         設備は指定順で表示する。
         レコードがない設備は「データなし」と表示する。
@@ -42,16 +46,47 @@ class MachineOperatingTimeChart(Figure):
         production_date = datetime.strptime(
             production_date, "%Y-%m-%d"
         ).date().isoformat()
+
         # 重複を除き、指定した設備の順番を保つ。
         machine_numbers = list(dict.fromkeys(machine_numbers))
         if not machine_numbers:
             raise ValueError("設備番号を1台以上指定してください")
-        if not DB_PATH.is_file():
-            raise FileNotFoundError(DB_PATH)
 
+        db_path = DB_DIR / db_file
+        if not db_path.is_file():
+            raise FileNotFoundError(db_path)
+
+        if db_file == "main_factory_production_data.db":
+            time_by_machine = self._get_main_factory_data(
+                db_path,
+                machine_numbers,
+                production_date,
+            )
+        elif db_file == "machine_operation.db":
+            time_by_machine = self._get_shine_factory_data(
+                db_path,
+                machine_numbers,
+                production_date,
+            )
+        else:
+            raise ValueError(f"未対応のDBです: {db_file}")
+
+        self._draw_chart(
+            machine_numbers,
+            machine_types,
+            production_date,
+            time_by_machine,
+        )
+
+    def _get_main_factory_data(
+        self,
+        db_path: Path,
+        machine_numbers: list[int],
+        production_date: str,
+    ) -> dict:
         placeholders = ", ".join("?" for _ in machine_numbers)
-        # 読み取り専用で開く。DBファイルの新規作成や更新は行わない。
-        conn = sqlite3.connect(DB_PATH)
+
+        conn = sqlite3.connect(db_path)
         try:
             rows = conn.execute(
                 f"""
@@ -67,16 +102,68 @@ class MachineOperatingTimeChart(Figure):
         finally:
             conn.close()
 
-        time_by_machine = {
+        return {
             machine_no: (regular_time, all_time - regular_time)
             for machine_no, regular_time, all_time in rows
         }
-        regular_times = [time_by_machine.get(n, (0, 0))[0] for n in machine_numbers]
-        outside_regular_times = [time_by_machine.get(n, (0, 0))[1] for n in machine_numbers]
+
+    def _get_shine_factory_data(
+        self,
+        db_path: Path,
+        machine_numbers: list[int],
+        production_date: str,
+    ) -> dict:
+        placeholders = ", ".join("?" for _ in machine_numbers)
+
+        conn = sqlite3.connect(db_path)
+        try:
+            rows = conn.execute(
+                f"""
+                SELECT machine_no,
+                       all_data
+                FROM operation_data
+                WHERE machine_no IN ({placeholders})
+                  AND date = ?
+                """,
+                (*machine_numbers, production_date),
+            ).fetchall()
+        finally:
+            conn.close()
+
+        time_by_machine = {}
+
+        for machine_no, all_data_text in rows:
+            data = [int(value) for value in all_data_text.split(",")]
+
+            regular_time = opdata_generator.get_run_time(data)
+            all_time = opdata_generator.get_all_run_time(data)
+            outside_regular_time = all_time - regular_time
+
+            time_by_machine[machine_no] = (
+                regular_time,
+                outside_regular_time,
+            )
+
+        return time_by_machine
+
+    def _draw_chart(
+        self,
+        machine_numbers: list[int],
+        machine_types: list[str],
+        production_date: str,
+        time_by_machine: dict,
+    ) -> None:
+        regular_times = [
+            time_by_machine.get(n, (0, 0))[0] for n in machine_numbers
+        ]
+        outside_regular_times = [
+            time_by_machine.get(n, (0, 0))[1] for n in machine_numbers
+        ]
         positions = list(range(len(machine_numbers)))
 
         self.clear()
         ax = self.add_subplot(111)
+
         ax.bar(
             positions,
             regular_times,
@@ -94,18 +181,27 @@ class MachineOperatingTimeChart(Figure):
             edgecolor="gray",
             linewidth=1,
         )
+
         # 各要素の中央に時間を整数表示する（0の要素は省略）。
         for bars in ax.containers:
             ax.bar_label(
                 bars,
-                labels=[f"{bar.get_height():.0f}" if bar.get_height() > 0 else "" for bar in bars],
+                labels=[
+                    f"{bar.get_height():.0f}"
+                    if bar.get_height() > 0
+                    else ""
+                    for bar in bars
+                ],
                 label_type="center",
                 fontsize=9,
             )
 
         # 棒の上に定時内＋定時外の合計稼働時間を表示する。
         for x, machine_no, regular_time, outside_time in zip(
-            positions, machine_numbers, regular_times, outside_regular_times
+            positions,
+            machine_numbers,
+            regular_times,
+            outside_regular_times,
         ):
             if machine_no in time_by_machine:
                 total_time = regular_time + outside_time
@@ -122,15 +218,33 @@ class MachineOperatingTimeChart(Figure):
 
         ax.set_xticks(
             positions,
-            [f"{number}\n{machine_type}" for number, machine_type in zip(machine_numbers, machine_types)],
+            [
+                f"{number}\n{machine_type}"
+                for number, machine_type in zip(
+                    machine_numbers,
+                    machine_types,
+                )
+            ],
         )
         ax.set_title(f"{CHART_TITLE}({production_date})", loc="left", pad=24)
         ax.set_xlabel(CHART_X_LABEL)
         ax.set_ylabel(CHART_Y_LABEL)
-        # 棒の高さと540分の基準線が両方収まる範囲にする。
-        max_total = max(r + o for r, o in zip(regular_times, outside_regular_times))
+
+        # 棒の高さと432分の基準線が両方収まる範囲にする。
+        max_total = max(
+            regular + outside
+            for regular, outside in zip(
+                regular_times,
+                outside_regular_times,
+            )
+        )
         ax.set_ylim(0, max(REGULAR_TIME, max_total) * 1.1)
-        ax.axhline(y=REGULAR_TIME, color="red", linestyle=":", linewidth=1.5)
+        ax.axhline(
+            y=REGULAR_TIME,
+            color="red",
+            linestyle=":",
+            linewidth=1.5,
+        )
         ax.set_axisbelow(True)
         ax.grid(axis="y", alpha=0.3)
         ax.legend(
@@ -148,9 +262,14 @@ class MachineOperatingTimeChart(Figure):
         for x, machine_no in zip(positions, machine_numbers):
             if machine_no not in time_by_machine:
                 ax.annotate(
-                    "データなし", (x, 0), xytext=(0, 5),
-                    textcoords="offset points", ha="center", fontsize=9,
+                    "データなし",
+                    (x, 0),
+                    xytext=(0, 5),
+                    textcoords="offset points",
+                    ha="center",
+                    fontsize=9,
                 )
+
         self.tight_layout()
 
 
@@ -160,14 +279,27 @@ if __name__ == "__main__":
     plt.rcParams["font.family"] = "Yu Gothic"
     plt.rcParams["axes.unicode_minus"] = False
 
-    machine_numbers = [
-        1, 3, 4, 6, 7, 10, 12, 13, 14, 17, 30, 32, 40
-    ]
+    factory = "main"  # "main" or "shine" で切り替え
 
-    machine_types = [
-        "KDP", "KDP", "KDP", "KDP", "KDP", "KDP", "KDP",
-        "KDP", "KDP", "KDP", "KDP", "KDP", "KDPN",
-    ]
+    if factory == "main":
+        machine_numbers = [
+            1, 3, 4, 6, 7, 10, 12, 13, 14, 17, 30, 32, 40
+        ]
+        machine_types = [
+            "KDP", "KDP", "KDP", "KDP", "KDP", "KDP", "KDP",
+            "KDP", "KDP", "KDP", "KDP", "KDP", "KDPN",
+        ]
+        production_date = "2026-10-06"
+        db_file = "main_factory_production_data.db"
+
+    elif factory == "shine":
+        machine_numbers = [15, 20, 21, 22, 23]
+        machine_types = ["TUBA", "TUBA", "STUD", "TUBA", "STUD"]
+        production_date = "2026-02-05"
+        db_file = "machine_operation.db"
+
+    else:
+        raise ValueError(f"未対応の工場です: {factory}")
 
     # 単体確認ではplt.show()用にpyplot経由で生成する。
     # Tkinterに組み込む場合: figure = MachineOperatingTimeChart()
@@ -175,7 +307,8 @@ if __name__ == "__main__":
     figure.update(
         machine_numbers=machine_numbers,
         machine_types=machine_types,
-        production_date="2026-10-06",
+        production_date=production_date,
+        db_file=db_file,
     )
 
     plt.show()

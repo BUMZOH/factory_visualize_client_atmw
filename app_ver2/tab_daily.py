@@ -73,7 +73,7 @@ class DailyTab(ttk.Frame):
             search_frame,
             values=list(self.factory_machine_layout.keys()),
             state="readonly",
-            width=20,
+            width=24,
             font=("Yu Gothic", 12),
         )
         self.area_combo.grid(row=0, column=1, padx=5)
@@ -126,6 +126,7 @@ class DailyTab(ttk.Frame):
 
             area_data = self.factory_machine_layout[area]
 
+            db_file = area_data["db_file"]
             machine_numbers = area_data["machine_numbers"]
             machine_types = area_data["machine_types"]
             date_text = self.date_entry.get().strip()
@@ -142,7 +143,12 @@ class DailyTab(ttk.Frame):
 
         try:
             for figure, canvas in zip(self.figures, self.canvases):
-                figure.update(machine_numbers, machine_types, date_text)
+                figure.update(
+                    machine_numbers,
+                    machine_types,
+                    date_text,
+                    db_file,
+                )
                 canvas.draw()
         except (sqlite3.Error, FileNotFoundError, ValueError, struct.error) as error:
             messagebox.showerror("データ取得エラー", str(error), parent=self)
