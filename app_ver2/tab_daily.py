@@ -5,6 +5,7 @@ import tkinter as tk
 from datetime import datetime, timedelta
 from pathlib import Path
 from tkinter import messagebox, ttk
+from PIL import ImageGrab
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -94,6 +95,9 @@ class DailyTab(ttk.Frame):
         self.search_button = ttk.Button(search_frame, text="検索", command=self.search)
         self.search_button.grid(row=0, column=4, padx=(15, 5))
         self.search_button.bind("<Return>", self.search)
+
+        self.capture_button = ttk.Button(search_frame, text="キャプチャ",command=self.capture_window)
+        self.capture_button.grid(row=0, column=5, padx=(60, 5))
 
         # Four charts in a 2 x 2 grid
         self.chart_frame = ttk.Frame(self)
@@ -188,6 +192,36 @@ class DailyTab(ttk.Frame):
         """Close all figures owned by this page."""
         for figure in self.figures:
             plt.close(figure)
+
+    def capture_window(self) -> None:
+        """アプリウィンドウをキャプチャしてPicturesフォルダへ保存する。"""
+        window = self.winfo_toplevel()
+
+        x = window.winfo_rootx()
+        y = window.winfo_rooty()
+        width = window.winfo_width()
+        height = window.winfo_height()
+
+        bbox = (
+            x,
+            y,
+            x + width,
+            y + height,
+        )
+
+        pictures_dir = Path.home() / "Pictures"
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_path = pictures_dir / f"capture_{timestamp}.png"
+
+        image = ImageGrab.grab(bbox=bbox)
+        image.save(file_path)
+
+        messagebox.showinfo(
+            "キャプチャ",
+            f"保存しました。\n\n{file_path}",
+            parent=self,
+        )
 
 
 if __name__ == "__main__":
