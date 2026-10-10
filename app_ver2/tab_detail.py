@@ -6,6 +6,7 @@ from tkinter import messagebox, ttk
 
 from PIL import ImageGrab, ImageTk
 from chart_status_timeline import MachineStatusTimeline
+from table_daily_alarm import AlarmTable
 from style import apply_style
 
 
@@ -54,18 +55,22 @@ class DetailTab(ttk.Frame):
 
         # 1台分の画像を原寸で表示する。縦横スクロール対応。
         chart_frame = ttk.Frame(self)
-        chart_frame.pack(fill=tk.BOTH, expand=True)
-        chart_frame.rowconfigure(0, weight=1)
+        chart_frame.pack(fill=tk.X)
         chart_frame.columnconfigure(0, weight=1)
         self.canvas = tk.Canvas(chart_frame, background="white", highlightthickness=0)
         self.canvas.grid(row=0, column=0, sticky="nsew")
-        y_scroll = ttk.Scrollbar(chart_frame, orient=tk.VERTICAL, command=self.canvas.yview)
-        y_scroll.grid(row=0, column=1, sticky="ns")
         x_scroll = ttk.Scrollbar(chart_frame, orient=tk.HORIZONTAL, command=self.canvas.xview)
         x_scroll.grid(row=1, column=0, sticky="ew")
-        self.canvas.configure(yscrollcommand=y_scroll.set, xscrollcommand=x_scroll.set)
+        self.canvas.configure(xscrollcommand=x_scroll.set)
         self.image = None  # PhotoImageの参照を保持する。
         self.timeline = MachineStatusTimeline()
+
+        # アラーム履歴
+        table_frame = ttk.Frame(self, padding=10)
+        table_frame.pack(fill=tk.BOTH, expand=True)
+
+        self.alarm_table = AlarmTable(table_frame)
+        self.alarm_table.pack(fill=tk.BOTH, expand=True)
 
     def search(self, event=None) -> None:
         """Validate one machine and one date, then display its timeline."""
@@ -83,6 +88,12 @@ class DetailTab(ttk.Frame):
             return
 
         self.show_timeline(machine_no, date_text)
+
+        try:
+            self.alarm_table.update(machine_no, date_text)  
+        except (sqlite3.Error, OSError, ValueError) as error:
+            messagebox.showerror("データ取得エラー", str(error), parent=self)
+
 
     def show_timeline(self, machine_no: int, production_date: str) -> None:
         """タイムライン部品へ検索条件を渡し、返された画像を表示する。"""
@@ -103,9 +114,11 @@ class DetailTab(ttk.Frame):
             self.canvas.configure(scrollregion=(0, 0, 1600, 80))
         else:
             self.canvas.create_image(0, 0, anchor="nw", image=photo)
-            self.canvas.configure(scrollregion=(0, 0, photo.width(), photo.height()))
+            self.canvas.configure(
+                height=photo.height(),
+                scrollregion=(0, 0, photo.width(), photo.height()),
+            )
         self.canvas.xview_moveto(0)
-        self.canvas.yview_moveto(0)
 
     def capture_window(self) -> None:
         """アプリウィンドウをキャプチャしてPicturesフォルダへ保存する。"""

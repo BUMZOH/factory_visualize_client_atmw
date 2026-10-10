@@ -13,7 +13,7 @@ WINDOW_TITLE = "Factory Production Dashboard"
 WINDOW_WIDTH = 1600
 WINDOW_HEIGHT = 950
 
-APP_VERSION = "Ver.20261007-1"
+APP_VERSION = "Ver.20261010-1"
 
 NAV_BUTTONS = [
     ("日別", DailyTab),
