@@ -41,10 +41,10 @@ class DetailTab(ttk.Frame):
         self.date_entry.grid(row=0, column=3, padx=5)
         self.date_entry.insert(0, datetime.now().strftime("%Y-%m-%d"))
         self.date_entry.bind("<Return>", self.search)
-        self.date_entry.bind("<Up>", lambda event: self.change_date(self.date_entry, -1))
-        self.date_entry.bind("<Down>", lambda event: self.change_date(self.date_entry, 1))
-        self.date_entry.bind("<Control-Up>", lambda event: self.change_month(self.date_entry, -1))
-        self.date_entry.bind("<Control-Down>", lambda event: self.change_month(self.date_entry, 1))
+        self.date_entry.bind("<Up>", lambda event: self.change_date(self.date_entry, 1))
+        self.date_entry.bind("<Down>", lambda event: self.change_date(self.date_entry, -1))
+        self.date_entry.bind("<Control-Up>", lambda event: self.change_month(self.date_entry, 1))
+        self.date_entry.bind("<Control-Down>", lambda event: self.change_month(self.date_entry, -1))
 
         self.search_button = ttk.Button(search_frame, text="検索", command=self.search)
         self.search_button.grid(row=0, column=4, padx=(15, 5))
@@ -120,14 +120,14 @@ class DetailTab(ttk.Frame):
             )
         self.canvas.xview_moveto(0)
 
-    def capture_window(self) -> None:
-        """アプリウィンドウをキャプチャしてPicturesフォルダへ保存する。"""
-        window = self.winfo_toplevel()
+    def save_window_capture(self, file_path: Path) -> None:
+        """現在のタブ表示領域を指定したファイルへ保存する。"""
+        self.update_idletasks()
 
-        x = window.winfo_rootx()
-        y = window.winfo_rooty()
-        width = window.winfo_width()
-        height = window.winfo_height()
+        x = self.winfo_rootx()
+        y = self.winfo_rooty()
+        width = self.winfo_width()
+        height = self.winfo_height()
 
         bbox = (
             x,
@@ -136,21 +136,23 @@ class DetailTab(ttk.Frame):
             y + height,
         )
 
+        image = ImageGrab.grab(bbox=bbox)
+        image.save(file_path)
+
+    def capture_window(self) -> None:
+        """現在のタブ表示領域をPicturesフォルダへ保存する。"""
         pictures_dir = Path.home() / "Pictures"
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         file_path = pictures_dir / f"capture_{timestamp}.png"
 
-        image = ImageGrab.grab(bbox=bbox)
-        image.save(file_path)
+        self.save_window_capture(file_path)
 
         messagebox.showinfo(
             "キャプチャ",
             f"保存しました。\n\n{file_path}",
             parent=self,
         )
-
-
 
     def change_machine(self, direction: int) -> str:
         """Up: +1. Down: -1. Keep the machine number between 1 and 99."""
@@ -164,7 +166,7 @@ class DetailTab(ttk.Frame):
         return "break"
 
     def change_date(self, entry: ttk.Entry, days: int) -> str:
-        """Up: previous day. Down: next day."""
+        """Up: next day. Down: previous day."""
         try:
             date = datetime.strptime(entry.get().strip(), "%Y-%m-%d")
             date += timedelta(days=days)

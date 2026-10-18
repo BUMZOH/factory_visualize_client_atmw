@@ -14,7 +14,7 @@ WINDOW_TITLE = "Factory Production Dashboard"
 WINDOW_WIDTH = 1600
 WINDOW_HEIGHT = 950
 
-APP_VERSION = "Ver.20261010-1"
+APP_VERSION = "Ver.20261018-1"
 
 NAV_BUTTONS = [
     ("日別", DailyTab),
@@ -32,6 +32,7 @@ apply_style()
 
 root.title(WINDOW_TITLE)
 root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
+root.state("zoomed")
 
 
 # ================================================

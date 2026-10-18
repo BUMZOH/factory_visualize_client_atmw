@@ -153,28 +153,28 @@ class PeriodTab(ttk.Frame):
             "<Up>",
             lambda event: self.change_date(
                 self.start_date_entry,
-                -1,
+                1,
             ),
         )
         self.start_date_entry.bind(
             "<Down>",
             lambda event: self.change_date(
                 self.start_date_entry,
-                1,
+                -1,
             ),
         )
         self.start_date_entry.bind(
             "<Control-Up>",
             lambda event: self.change_month(
                 self.start_date_entry,
-                -1,
+                1,
             ),
         )
         self.start_date_entry.bind(
             "<Control-Down>",
             lambda event: self.change_month(
                 self.start_date_entry,
-                1,
+                -1,
             ),
         )
 
@@ -198,28 +198,28 @@ class PeriodTab(ttk.Frame):
             "<Up>",
             lambda event: self.change_date(
                 self.end_date_entry,
-                -1,
+                1,
             ),
         )
         self.end_date_entry.bind(
             "<Down>",
             lambda event: self.change_date(
                 self.end_date_entry,
-                1,
+                -1,
             ),
         )
         self.end_date_entry.bind(
             "<Control-Up>",
             lambda event: self.change_month(
                 self.end_date_entry,
-                -1,
+                1,
             ),
         )
         self.end_date_entry.bind(
             "<Control-Down>",
             lambda event: self.change_month(
                 self.end_date_entry,
-                1,
+                -1,
             ),
         )
 
@@ -446,7 +446,7 @@ class PeriodTab(ttk.Frame):
         entry: ttk.Entry,
         days: int,
     ) -> str:
-        """Up: previous day. Down: next day."""
+        """Up: next day. Down: previous day."""
         try:
             date = datetime.strptime(
                 entry.get().strip(),
@@ -509,13 +509,13 @@ class PeriodTab(ttk.Frame):
             plt.close(figure)
 
     def save_window_capture(self, file_path: Path) -> None:
-        """現在のアプリウィンドウを指定したファイルへ保存する。"""
-        window = self.winfo_toplevel()
+        """現在のタブ表示領域を指定したファイルへ保存する。"""
+        self.update_idletasks()
 
-        x = window.winfo_rootx()
-        y = window.winfo_rooty()
-        width = window.winfo_width()
-        height = window.winfo_height()
+        x = self.winfo_rootx()
+        y = self.winfo_rooty()
+        width = self.winfo_width()
+        height = self.winfo_height()
 
         bbox = (
             x,
