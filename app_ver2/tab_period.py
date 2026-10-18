@@ -126,11 +126,11 @@ class PeriodTab(ttk.Frame):
         self.machine_entry.bind("<Return>", self.search)
         self.machine_entry.bind(
             "<Up>",
-            lambda event: self.change_machine(-1),
+            lambda event: self.change_machine(1),
         )
         self.machine_entry.bind(
             "<Down>",
-            lambda event: self.change_machine(1),
+            lambda event: self.change_machine(-1),
         )
 
         ttk.Label(
